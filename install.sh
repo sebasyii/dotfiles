@@ -51,7 +51,7 @@ fi
 ###############################################################################
 pause_for_user() {
   print_warning "Press any key to continue..."
-  read
+  read -r
 }
 
 install_xcode_command_line_tools() {
@@ -206,13 +206,19 @@ install_development_tools() {
 install_zsh_plugins() {
   print_step "Installing ZSH plugins..."
 
+  # Check if this is a fresh oh-my-zsh install or if it's already installed
   if [ ! -d "${ZSH:-$HOME/.oh-my-zsh}" ]; then
     print_warning "oh-my-zsh not found. Installing..."
-    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+    # Install oh-my-zsh without running zsh at the end
+    RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || {
+      print_error "oh-my-zsh installation failed"
+      exit 1
+    }
 
-    exec zsh "$0"
+    print_success "oh-my-zsh installed successfully"
   fi
 
+  # Install zsh-autosuggestions
   if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
     git clone https://github.com/zsh-users/zsh-autosuggestions \
       "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
@@ -220,6 +226,7 @@ install_zsh_plugins() {
     print_warning "zsh-autosuggestions already installed."
   fi
 
+  # Install zsh-syntax-highlighting
   if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting \
       "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
@@ -264,9 +271,16 @@ install_apps() {
 }
 
 setup_alias() {
-  echo 'alias ls="eza --icons=always"' >> ~/.zshrc
-  echo 'alias ll="eza -al --icons"' >> ~/.zshrc
-  echo 'alias lt="eza -T --icons"' >> ~/.zshrc
+  print_step "Setting up aliases..."
+  cat << 'EOF' >> ~/.zshrc
+
+# Custom aliases
+alias ls="eza --icons=always"
+alias ll="eza -al --icons"
+alias lt="eza -T --icons"
+EOF
+
+  print_success "Aliases configured."
 }
 
 ###############################################################################
