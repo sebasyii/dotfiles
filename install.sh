@@ -219,7 +219,7 @@ EOF
 
 install_terminal_font() {
   print_step "Installing Nerd Font for terminal..."
-  brew install --cask font-jetbrains-mono-nerd-font
+  brew install font-jetbrains-mono-nerd-font
 
   print_success "JetBrains Mono Nerd Font installed."
 }
@@ -311,7 +311,7 @@ install_apps() {
     print_step "Installing Mac Mouse Fix"
     brew install --cask mac-mouse-fix
     print_step "Installing Caskaydia Cove Nerd Font"
-    brew install --cask font-caskaydia-cove-nerd-font
+    brew install font-caskaydia-cove-nerd-font
     print_success "Caskaydia Cove Nerd Font Installed..."
 }
 
