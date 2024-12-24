@@ -68,13 +68,19 @@ install_homebrew() {
       print_success "Homebrew installation successful."
 
       print_step "Configuring Homebrew environment..."
-      # # Avoid duplicates in .zprofile
-      # if ! grep -q "brew shellenv" ~/.zprofile 2>/dev/null; then
-      #   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-      #   print_success "Added Homebrew to ~/.zprofile"
-      # else
-      #   print_warning "Homebrew is already configured in ~/.zprofile"
-      # fi
+
+      # if zprofile doesn't exist, create it, use $HOME
+        if [ ! -f ~/.zprofile ]; then
+            touch ~/.zprofile
+        fi
+
+      # Avoid duplicates in .zprofile
+      if ! grep -q "brew shellenv" ~/.zprofile 2>/dev/null; then
+        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+        print_success "Added Homebrew to ~/.zprofile"
+      else
+        print_warning "Homebrew is already configured in ~/.zprofile"
+      fi
 
       eval "$(/opt/homebrew/bin/brew shellenv)"
       print_success "Homebrew environment configured for current session."
@@ -213,7 +219,6 @@ EOF
 
 install_terminal_font() {
   print_step "Installing Nerd Font for terminal..."
-  brew tap homebrew/cask-fonts
   brew install --cask font-jetbrains-mono-nerd-font
 
   print_success "JetBrains Mono Nerd Font installed."
@@ -307,6 +312,7 @@ install_apps() {
     brew install --cask mac-mouse-fix
     print_step "Installing Caskaydia Cove Nerd Font"
     brew install --cask font-caskaydia-cove-nerd-font
+    print_success "Caskaydia Cove Nerd Font Installed..."
 }
 
 setup_alias() {
