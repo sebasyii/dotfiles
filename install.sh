@@ -257,6 +257,10 @@ install_aptos_dev_setup() {
 
   print_step "Installing libraries for building aptos-core..."
   brew install cmake
+  brew install libpq
+  brew link --force libpq
+  echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc
+  source ~/.zshrc
 }
 
 ## Install nvm, install pyenv
