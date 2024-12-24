@@ -174,6 +174,7 @@ install_rust() {
   if ! command -v rustup &>/dev/null; then
     print_step "Downloading and installing rustup..."
     curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    source "$HOME/.cargo/env"
     print_success "Rust installed successfully."
   else
     print_success "Rust is already installed. Updating..."
