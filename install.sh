@@ -166,8 +166,7 @@ install_development_tools() {
     fzf \
     ripgrep \
     fd \
-    exa \
-    delta
+    exa 
 
   print_success "Development tools installed."
 }
@@ -205,7 +204,6 @@ export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="robbyrussell"
 plugins=(
   git
-  docker
   zsh-autosuggestions
   zsh-syntax-highlighting
 )
@@ -223,6 +221,62 @@ install_terminal_font() {
   print_success "JetBrains Mono Nerd Font installed."
 }
 
+install_rust() {
+  print_step "Installing Rust using rustup..."
+  if ! command -v rustup &>/dev/null; then
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -- -y
+    print_success "Rust installed successfully."
+  else
+    print_success "Rust is already installed. Updating..."
+    rustup update
+  fi
+
+  print_step "Setting up default component"
+  rustup default stable
+  rustup component add clippy rustfmt
+  print_success "Rust default components installed"
+
+  source ~/.cargo/env
+}
+
+install_aptos_dev_setup() {
+  print_step "Installing Aptos specified libraries"
+  if ! command -v aptos &>/dev/null; then
+    print_step "Installing Aptos CLI using brew..."
+    brew install aptos
+  else
+    print_warning "Aptos CLI already installed. Updating..."
+    brew update
+    brew install aptos
+  fi
+
+  print_step "Installing libraries for building aptos-core..."
+  brew install cmake
+}
+
+## Install nvm, install pyenv
+
+
+install_nvm() {
+  print_step "Installing nvm..."
+  if [ ! -d "$HOME/.nvm" ]; then
+   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
+   print_success "nvm installed successfully."
+
+    if ! grep -q "NVM_DIR" ~/.zshrc; then
+      echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "$HOME/.nvm" || printf %s "$XDG_CONFIG_HOME/nvm")"' >> ~/.zshrc
+      echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.zshrc
+      print_success "Added nvm to ~/.zshrc"
+
+      source ~/.zshrc
+    else
+      print_warning "nvm is already configured in ~/.zshrc"
+    fi
+  else
+    print_warning "nvm is already installed."
+  fi
+}
+
 ###############################################################################
 # Main Script Execution
 ###############################################################################
@@ -238,5 +292,9 @@ install_development_tools
 install_zsh_plugins
 configure_zshrc
 install_terminal_font
+
+install_rust
+install_aptos_dev_setup
+install_nvm
 
 print_success "Setup complete! Some changes may require a logout or restart to take full effect."
