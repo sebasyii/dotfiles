@@ -33,6 +33,20 @@ print_warning() { echo -e "${YELLOW}⚠${NC} $*"; }
 print_error()   { echo -e "${RED}✗${NC} $*"; }
 
 ###############################################################################
+# Re-entry Logic to Handle Shell Reloads
+###############################################################################
+if [ "${SCRIPT_REENTRY:-}" != "true" ]; then
+  export SCRIPT_REENTRY="true"
+  if [ "$SHELL" != "$(which zsh)" ]; then
+    print_step "Changing default shell to zsh..."
+    chsh -s "$(which zsh)" || print_warning "Could not change shell automatically."
+
+    print_step "Starting zsh for setup..."
+    exec zsh "$0"  # Restart the script with zsh
+  fi
+fi
+
+###############################################################################
 # Helper Functions
 ###############################################################################
 pause_for_user() {
@@ -69,12 +83,10 @@ install_homebrew() {
 
       print_step "Configuring Homebrew environment..."
 
-      # if zprofile doesn't exist, create it, use $HOME
-        if [ ! -f ~/.zprofile ]; then
-            touch ~/.zprofile
-        fi
+      if [ ! -f ~/.zprofile ]; then
+        touch ~/.zprofile
+      fi
 
-      # Avoid duplicates in .zprofile
       if ! grep -q "brew shellenv" ~/.zprofile 2>/dev/null; then
         echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
         print_success "Added Homebrew to ~/.zprofile"
@@ -85,7 +97,6 @@ install_homebrew() {
       eval "$(/opt/homebrew/bin/brew shellenv)"
       print_success "Homebrew environment configured for current session."
 
-      # Check for issues
       if brew doctor; then
         print_success "Homebrew is ready to use!"
       else
@@ -110,7 +121,6 @@ configure_macos_defaults() {
   defaults write NSGlobalDomain InitialKeyRepeat -int 15
 
   # Disable press-and-hold for keys in favor of key repeat
-  # If you actually want to "disable" press-and-hold, set to false.
   defaults write NSGlobalDomain ApplePressAndHoldEnabled -bool false
 
   # Show battery percentage in menu bar
@@ -145,8 +155,6 @@ configure_macos_defaults() {
   print_step "Restarting Dock and Finder to apply changes..."
   killall Dock &>/dev/null || true
   killall Finder &>/dev/null || true
-  # Safari only needs a killall if open and we changed certain settings
-  # killall Safari &>/dev/null || true
 
   print_success "macOS system defaults configured."
 }
@@ -159,6 +167,25 @@ configure_git() {
   git config --global core.editor "nvim"
 
   print_success "Git configuration updated."
+}
+
+install_rust() {
+  print_step "Installing Rust using rustup..."
+  if ! command -v rustup &>/dev/null; then
+    print_step "Downloading and installing rustup..."
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -s -- -y
+    print_success "Rust installed successfully."
+  else
+    print_success "Rust is already installed. Updating..."
+    rustup update
+  fi
+
+  print_step "Setting up default components..."
+  rustup default stable
+  rustup component add clippy rustfmt
+  print_success "Rust default components installed."
+
+  source "$HOME/.cargo/env"
 }
 
 install_development_tools() {
@@ -178,13 +205,13 @@ install_development_tools() {
 install_zsh_plugins() {
   print_step "Installing ZSH plugins..."
 
-  # Optionally check if oh-my-zsh is installed
   if [ ! -d "${ZSH:-$HOME/.oh-my-zsh}" ]; then
     print_warning "oh-my-zsh not found. Installing..."
     sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"
+
+    exec zsh "$0"
   fi
 
-  # autosuggestions
   if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
     git clone https://github.com/zsh-users/zsh-autosuggestions \
       "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
@@ -192,7 +219,6 @@ install_zsh_plugins() {
     print_warning "zsh-autosuggestions already installed."
   fi
 
-  # syntax highlighting
   if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" ]; then
     git clone https://github.com/zsh-users/zsh-syntax-highlighting \
       "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
@@ -224,107 +250,22 @@ install_terminal_font() {
   print_success "JetBrains Mono Nerd Font installed."
 }
 
-install_rust() {
-  print_step "Installing Rust using rustup..."
-  if ! command -v rustup &>/dev/null; then
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
-    print_success "Rust installed successfully."
-    # Reload env
-    source "$HOME/.cargo/env"
-  else
-    print_success "Rust is already installed. Updating..."
-    rustup update
-  fi
-
-  print_step "Setting up default component"
-  rustup default stable
-  rustup component add clippy rustfmt
-  print_success "Rust default components installed"
-
-  source ~/.cargo/env
-}
-
-install_aptos_dev_setup() {
-  print_step "Installing Aptos specified libraries"
-  if ! command -v aptos &>/dev/null; then
-    print_step "Installing Aptos CLI using brew..."
-    brew install aptos
-  else
-    print_warning "Aptos CLI already installed. Updating..."
-    brew update
-    brew install aptos
-  fi
-
-  print_step "Installing libraries for building aptos-core..."
-  brew install cmake
-  brew install libpq
-  brew link --force libpq
-  echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc
-  source ~/.zshrc
-}
-
-## Install nvm, install pyenv
-install_pyenv() {
-    print_step "Insstalling pyenv..."
-    if [ ! -d "$HOME/.pyenv" ]; then
-        brew install pyenv
-        print_success "pyenv installed successfully."
-
-        if ! grep -q "PYENV_ROOT" ~/.zshrc; then
-            echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
-            echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
-            echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
-            print_success "Added pyenv to ~/.zshrc"
-
-            source ~/.zshrc
-        else
-            print_warning "pyenv is already configured in ~/.zshrc"
-        fi
-    else
-        print_warning "pyenv is already installed."
-    fi
-}
-
-install_nvm() {
-  print_step "Installing nvm..."
-  if [ ! -d "$HOME/.nvm" ]; then
-   curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/v0.40.1/install.sh | bash
-   print_success "nvm installed successfully."
-
-    if ! grep -q "NVM_DIR" ~/.zshrc; then
-      echo 'export NVM_DIR="$([ -z "${XDG_CONFIG_HOME-}" ] && printf %s "$HOME/.nvm" || printf %s "$XDG_CONFIG_HOME/nvm")"' >> ~/.zshrc
-      echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> ~/.zshrc
-      print_success "Added nvm to ~/.zshrc"
-
-      source ~/.zshrc
-    else
-      print_warning "nvm is already configured in ~/.zshrc"
-    fi
-  else
-    print_warning "nvm is already installed."
-  fi
-}
-
-# Install apps
-
 install_apps() {
-    print_step "Installing apps from brew..."
+  print_step "Installing apps from brew..."
 
-    print_step "Installing Alt Tab"
-    brew install --cask alt-tab
-    print_step "Installing Wezterm"
-    brew install --cask wezterm
-    print_step "Installing Mac Mouse Fix"
-    brew install --cask mac-mouse-fix
-    print_step "Installing Caskaydia Cove Nerd Font"
-    brew install font-caskaydia-cove-nerd-font
-    print_success "Caskaydia Cove Nerd Font Installed..."
+  brew install --cask alt-tab
+  brew install --cask wezterm
+  brew install --cask mac-mouse-fix
+  brew install font-caskaydia-cove-nerd-font
+  brew install --cask brave-browser
+
+  print_success "Applications installed."
 }
 
 setup_alias() {
-    echo 'alias ls="eza --icons=always"' >> ~/.zshrc
-    echo 'alias ll="eza -al --icons"' >> ~/.zshrc
-    echo 'alias lt="eza -T --icons"' >> ~/.zshrc
+  echo 'alias ls="eza --icons=always"' >> ~/.zshrc
+  echo 'alias ll="eza -al --icons"' >> ~/.zshrc
+  echo 'alias lt="eza -T --icons"' >> ~/.zshrc
 }
 
 ###############################################################################
@@ -334,20 +275,13 @@ print_step "Starting macOS setup script..."
 
 install_xcode_command_line_tools
 install_homebrew
-
 configure_macos_defaults
 configure_git
-
+install_rust
 install_development_tools
 install_zsh_plugins
 configure_zshrc
 install_terminal_font
-
-install_rust
-install_aptos_dev_setup
-install_nvm
-install_pyenv
-
 install_apps
 setup_alias
 
