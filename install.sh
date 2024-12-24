@@ -37,7 +37,7 @@ print_error()   { echo -e "${RED}✗${NC} $*"; }
 ###############################################################################
 pause_for_user() {
   print_warning "Press any key to continue..."
-  read -n 1 -s
+  read
 }
 
 install_xcode_command_line_tools() {
@@ -68,13 +68,13 @@ install_homebrew() {
       print_success "Homebrew installation successful."
 
       print_step "Configuring Homebrew environment..."
-      # Avoid duplicates in .zprofile
-      if ! grep -q "brew shellenv" ~/.zprofile 2>/dev/null; then
-        echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
-        print_success "Added Homebrew to ~/.zprofile"
-      else
-        print_warning "Homebrew is already configured in ~/.zprofile"
-      fi
+      # # Avoid duplicates in .zprofile
+      # if ! grep -q "brew shellenv" ~/.zprofile 2>/dev/null; then
+      #   echo 'eval "$(/opt/homebrew/bin/brew shellenv)"' >> ~/.zprofile
+      #   print_success "Added Homebrew to ~/.zprofile"
+      # else
+      #   print_warning "Homebrew is already configured in ~/.zprofile"
+      # fi
 
       eval "$(/opt/homebrew/bin/brew shellenv)"
       print_success "Homebrew environment configured for current session."
@@ -132,9 +132,6 @@ configure_macos_defaults() {
   defaults write com.apple.finder FXPreferredViewStyle -string "Nlsv"
   defaults write com.apple.finder FXDefaultSearchScope -string "SCcf"
 
-  # Safari settings
-  print_step "Configuring Safari..."
-  defaults write com.apple.Safari ShowFullURLInSmartSearchField -bool true
   # Save to disk (not iCloud) by default
   defaults write NSGlobalDomain NSDocumentSaveNewDocumentsToCloud -bool false
 
@@ -166,7 +163,8 @@ install_development_tools() {
     fzf \
     ripgrep \
     fd \
-    exa 
+    eza \
+    nerdfetch
 
   print_success "Development tools installed."
 }
@@ -255,7 +253,26 @@ install_aptos_dev_setup() {
 }
 
 ## Install nvm, install pyenv
+install_pyenv() {
+    print_step "Insstalling pyenv..."
+    if [ ! -d "$HOME/.pyenv" ]; then
+        brew install pyenv
+        print_success "pyenv installed successfully."
 
+        if ! grep -q "PYENV_ROOT" ~/.zshrc; then
+            echo 'export PYENV_ROOT="$HOME/.pyenv"' >> ~/.zshrc
+            echo '[[ -d $PYENV_ROOT/bin ]] && export PATH="$PYENV_ROOT/bin:$PATH"' >> ~/.zshrc
+            echo 'eval "$(pyenv init - zsh)"' >> ~/.zshrc
+            print_success "Added pyenv to ~/.zshrc"
+
+            source ~/.zshrc
+        else
+            print_warning "pyenv is already configured in ~/.zshrc"
+        fi
+    else
+        print_warning "pyenv is already installed."
+    fi
+}
 
 install_nvm() {
   print_step "Installing nvm..."
@@ -277,6 +294,27 @@ install_nvm() {
   fi
 }
 
+# Install apps
+
+install_apps() {
+    print_step "Installing apps from brew..."
+
+    print_step "Installing Alt Tab"
+    brew install --cask alt-tab
+    print_step "Installing Wezterm"
+    brew install --cask wezterm
+    print_step "Installing Mac Mouse Fix"
+    brew install --cask mac-mouse-fix
+    print_step "Installing Caskaydia Cove Nerd Font"
+    brew install --cask font-caskaydia-cove-nerd-font
+}
+
+setup_alias() {
+    echo 'alias ls="eza --icons=always"' >> ~/.zshrc
+    echo 'alias ll="eza -al --icons"' >> ~/.zshrc
+    echo 'alias lt="eza -T --icons"' >> ~/.zshrc
+}
+
 ###############################################################################
 # Main Script Execution
 ###############################################################################
@@ -296,5 +334,9 @@ install_terminal_font
 install_rust
 install_aptos_dev_setup
 install_nvm
+install_pyenv
+
+install_apps
+setup_alias
 
 print_success "Setup complete! Some changes may require a logout or restart to take full effect."
