@@ -227,7 +227,7 @@ install_terminal_font() {
 install_rust() {
   print_step "Installing Rust using rustup..."
   if ! command -v rustup &>/dev/null; then
-    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh -- -y
+    curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
     print_success "Rust installed successfully."
   else
     print_success "Rust is already installed. Updating..."
