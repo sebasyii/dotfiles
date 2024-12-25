@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/usr/bin/env sh
 
 ###############################################################################
 # macOS Setup Script
@@ -21,6 +21,7 @@ set -Eeuo pipefail  # safer scripting: exit on error, unset variables, or pipefa
 ###############################################################################
 # Color Variables and Print Functions
 ###############################################################################
+
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
@@ -32,23 +33,11 @@ print_success() { echo -e "${GREEN}✓${NC} $*"; }
 print_warning() { echo -e "${YELLOW}⚠${NC} $*"; }
 print_error()   { echo -e "${RED}✗${NC} $*"; }
 
-###############################################################################
-# Re-entry Logic to Handle Shell Reloads
-###############################################################################
-if [ "${SCRIPT_REENTRY:-}" != "true" ]; then
-  export SCRIPT_REENTRY="true"
-  if [ "$SHELL" != "$(which zsh)" ]; then
-    print_step "Changing default shell to zsh..."
-    chsh -s "$(which zsh)" || print_warning "Could not change shell automatically."
-
-    print_step "Starting zsh for setup..."
-    exec zsh "$0"  # Restart the script with zsh
-  fi
-fi
 
 ###############################################################################
 # Helper Functions
 ###############################################################################
+
 pause_for_user() {
   print_warning "Press any key to continue..."
   read -r
@@ -135,7 +124,6 @@ configure_macos_defaults() {
   defaults write com.apple.dock autohide -bool true
   defaults write com.apple.dock autohide-time-modifier -float 0.5
   defaults write com.apple.dock autohide-delay -float 0.2
-  defaults write com.apple.dock minimize-to-application -bool true
   defaults write com.apple.dock tilesize -int 36
   defaults write com.apple.dock mineffect -string "scale"
 
@@ -198,7 +186,7 @@ install_development_tools() {
     ripgrep \
     fd \
     eza \
-    nerdfetch
+    fastfetch
 
   print_success "Development tools installed."
 }
@@ -285,13 +273,6 @@ plugins=(git zsh-autosuggestions zsh-syntax-highlighting)' ~/.zshrc
   print_warning "Backup of original .zshrc saved as ~/.zshrc.backup"
 }
 
-install_terminal_font() {
-  print_step "Installing Nerd Font for terminal..."
-  brew install font-jetbrains-mono-nerd-font
-
-  print_success "JetBrains Mono Nerd Font installed."
-}
-
 install_aptos_dev_setup() {
   print_step "Installing Aptos specified libraries"
   if ! command -v aptos &>/dev/null; then
@@ -319,6 +300,8 @@ install_apps() {
   brew install --cask mac-mouse-fix
   brew install font-caskaydia-cove-nerd-font
   brew install --cask brave-browser
+  brew install --cask parallels
+  brew install --cask raycast
 
   print_success "Applications installed."
 }
@@ -349,9 +332,9 @@ install_rust
 install_development_tools
 # install_zsh_plugins
 # configure_zshrc
-install_terminal_font
+
 install_apps
 install_aptos_dev_setup
-setup_alias
+# setup_alias
 
 print_success "Setup complete! Some changes may require a logout or restart to take full effect."
