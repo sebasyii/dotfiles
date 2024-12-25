@@ -347,8 +347,8 @@ configure_macos_defaults
 configure_git
 install_rust
 install_development_tools
-install_zsh_plugins
-configure_zshrc
+# install_zsh_plugins
+# configure_zshrc
 install_terminal_font
 install_apps
 install_aptos_dev_setup
