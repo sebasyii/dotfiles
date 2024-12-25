@@ -237,18 +237,43 @@ install_zsh_plugins() {
 
 configure_zshrc() {
   print_step "Configuring ~/.zshrc..."
-  cat << 'EOF' > ~/.zshrc
-export ZSH="$HOME/.oh-my-zsh"
-ZSH_THEME="robbyrussell"
-plugins=(
-  git
-  zsh-autosuggestions
-  zsh-syntax-highlighting
-)
-source $ZSH/oh-my-zsh.sh
-EOF
+
+  # Backup the original file
+  cp ~/.zshrc ~/.zshrc.backup
+
+  # Update the plugins line if it exists
+  if grep -q "^plugins=(.*git.*)$" ~/.zshrc; then
+    # If plugins line exists and already has git, just add our new plugins
+    sed -i '' '/^plugins=(/c\
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting)' ~/.zshrc
+  else
+    # If plugins line exists but without git
+    if grep -q "^plugins=(" ~/.zshrc; then
+      sed -i '' '/^plugins=(/c\
+plugins=(git zsh-autosuggestions zsh-syntax-highlighting)' ~/.zshrc
+    else
+      # If no plugins line exists, append it
+      echo "plugins=(git zsh-autosuggestions zsh-syntax-highlighting)" >> ~/.zshrc
+    fi
+  fi
+
+  # Check if ZSH export already exists
+  if ! grep -q "export ZSH=\"\$HOME/.oh-my-zsh\"" ~/.zshrc; then
+    echo 'export ZSH="$HOME/.oh-my-zsh"' >> ~/.zshrc
+  fi
+
+  # Check if theme setting already exists
+  if ! grep -q "^ZSH_THEME=" ~/.zshrc; then
+    echo 'ZSH_THEME="robbyrussell"' >> ~/.zshrc
+  fi
+
+  # Check if source command already exists
+  if ! grep -q "source \$ZSH/oh-my-zsh.sh" ~/.zshrc; then
+    echo 'source $ZSH/oh-my-zsh.sh' >> ~/.zshrc
+  fi
 
   print_success "~/.zshrc has been updated."
+  print_warning "Backup of original .zshrc saved as ~/.zshrc.backup"
 }
 
 install_terminal_font() {
@@ -256,6 +281,25 @@ install_terminal_font() {
   brew install font-jetbrains-mono-nerd-font
 
   print_success "JetBrains Mono Nerd Font installed."
+}
+
+install_aptos_dev_setup() {
+  print_step "Installing Aptos specified libraries"
+  if ! command -v aptos &>/dev/null; then
+    print_step "Installing Aptos CLI using brew..."
+    brew install aptos
+  else
+    print_warning "Aptos CLI already installed. Updating..."
+    brew update
+    brew install aptos
+  fi
+
+  print_step "Installing libraries for building aptos-core..."
+  brew install cmake
+  brew install libpq
+  brew link --force libpq
+  echo 'export PATH="/opt/homebrew/opt/libpq/bin:$PATH"' >> ~/.zshrc
+  source ~/.zshrc
 }
 
 install_apps() {
@@ -298,6 +342,7 @@ install_zsh_plugins
 configure_zshrc
 install_terminal_font
 install_apps
+install_aptos_dev_setup
 setup_alias
 
 print_success "Setup complete! Some changes may require a logout or restart to take full effect."
