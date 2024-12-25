@@ -206,32 +206,41 @@ install_development_tools() {
 install_zsh_plugins() {
   print_step "Installing ZSH plugins..."
 
-  # Check if this is a fresh oh-my-zsh install or if it's already installed
-  if [ ! -d "${ZSH:-$HOME/.oh-my-zsh}" ]; then
+  ZSH_DIR="${ZSH:-$HOME/.oh-my-zsh}"
+  ZSH_CUSTOM_DIR="${ZSH_CUSTOM:-$ZSH_DIR/custom}"
+
+  if [ ! -d "$ZSH_DIR" ]; then
     print_warning "oh-my-zsh not found. Installing..."
-    # Install oh-my-zsh without running zsh at the end
-    RUNZSH=no sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || {
-      print_error "oh-my-zsh installation failed"
+    sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)" || {
+      print_error "Failed to install oh-my-zsh."
       exit 1
     }
 
-    print_success "oh-my-zsh installed successfully"
+    exec zsh "$0"  # Restart script with zsh
   fi
 
-  # Install zsh-autosuggestions
-  if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions" ]; then
-    git clone https://github.com/zsh-users/zsh-autosuggestions \
-      "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-autosuggestions"
+  mkdir -p "$ZSH_CUSTOM_DIR/plugins"
+
+  AUTOSUGGESTIONS_DIR="$ZSH_CUSTOM_DIR/plugins/zsh-autosuggestions"
+  if [ ! -d "$AUTOSUGGESTIONS_DIR" ]; then
+    print_step "Cloning zsh-autosuggestions..."
+    git clone https://github.com/zsh-users/zsh-autosuggestions "$AUTOSUGGESTIONS_DIR" || {
+      print_error "Failed to clone zsh-autosuggestions."
+      exit 1
+    }
   else
-    print_warning "zsh-autosuggestions already installed."
+    print_warning "zsh-autosuggestions already installed at $AUTOSUGGESTIONS_DIR"
   fi
 
-  # Install zsh-syntax-highlighting
-  if [ ! -d "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting" ]; then
-    git clone https://github.com/zsh-users/zsh-syntax-highlighting \
-      "${ZSH_CUSTOM:-~/.oh-my-zsh/custom}/plugins/zsh-syntax-highlighting"
+  SYNTAX_HIGHLIGHTING_DIR="$ZSH_CUSTOM_DIR/plugins/zsh-syntax-highlighting"
+  if [ ! -d "$SYNTAX_HIGHLIGHTING_DIR" ]; then
+    print_step "Cloning zsh-syntax-highlighting..."
+    git clone https://github.com/zsh-users/zsh-syntax-highlighting "$SYNTAX_HIGHLIGHTING_DIR" || {
+      print_error "Failed to clone zsh-syntax-highlighting."
+      exit 1
+    }
   else
-    print_warning "zsh-syntax-highlighting already installed."
+    print_warning "zsh-syntax-highlighting already installed at $SYNTAX_HIGHLIGHTING_DIR"
   fi
 }
 
